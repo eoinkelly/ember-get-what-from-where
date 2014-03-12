@@ -72,8 +72,7 @@ App.Router.map( function() {
 // * the transition object represents the transition
 // * it is passed to the various _routes_ that are involved in the transition (source route, destiniation route)
 // * the source route can intercept the transition with the willTransistion hook
-// * the desiting route can intercept the route with beforeModel, model, afterModel
-
+// * the destination route can intercept the route with beforeModel, model, afterModel
 
 
 App.ApplicationRoute = Ember.Route.extend({ 
@@ -135,6 +134,18 @@ App.ApplicationRoute = Ember.Route.extend({
     // debugger
 
     // this.get() supports the unknownProperty handler (sort of a method_missing for properties)
+  },
+
+
+  // ?
+  setupController: function (controller, model) {
+    // model = the model from the model hook
+    // controller = the controller for the current route (resolved based on the name of the route)
+
+    // default action:
+    // controller.content = model
+
+    // ?? if you override this do you need to do something like the default action?
   },
 
   actions: {
@@ -521,3 +532,39 @@ b.toString(); // "<App.Bar:ember211>"
 //    * ember can do it for arrays of stuff - even for things that are not
 //      computed properties => you can use a static property for something that
 //      would normally be computed
+
+
+// Views
+// *****
+
+App.AudioPlayerComponent = Ember.Component.extend({
+
+  // How do I create a static property for my templates?
+  // =============
+
+  // access in template as {{simple}} 
+  simple: "i am simple",
+
+  // How do I create a computed property for my templates?
+  // =============
+
+  // access in template as {thing}} 
+  thing: (function() {
+    // this = current instance of the component
+    // arguments = ['thing']
+
+    return "hello";
+  }).property(),
+
+  // How do I access a parameter passed to the component?
+  // this.get('paramName');
+
+  actions: {
+    doSomething: function() {
+      // this = the component instance
+      // arguments = ?
+    }
+  }
+
+});
+
