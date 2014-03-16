@@ -142,15 +142,25 @@ App.ApplicationRoute = Ember.Route.extend({
     // model = the model from the model hook
     // controller = the controller for the current route (resolved based on the name of the route)
 
-    // default action:
-    // controller.content = model
+    // default action of this function:
+    // controller.set('model') = model
 
-    // ?? if you override this do you need to do something like the default action?
+    // If you override this function and still want this behaviour to happen you need to do it!
   },
 
   actions: {
     someAction: function() {
     }
+  },
+
+  // TODO find out more aobut his hook
+  didTransition: function () {
+
+    Ember.run.once(this, function () {
+      // this.get('router') // => the router singleton
+      // this.get('router').get('url') === this.get('router.url')
+      trackAnalytics(this.get('router.url'));
+    });
   }
 
 });
@@ -568,3 +578,105 @@ App.AudioPlayerComponent = Ember.Component.extend({
 
 });
 
+
+
+// Implicit mixin passed to extend()
+var Foo = Ember.Object.extend({
+  greet: function () {
+    console.log('hello');
+  }
+});
+
+// Explicit mixin
+var Mixy = Ember.Mixin.create({
+  greet: function () {
+    console.log('hello from mixin');
+  }
+});
+
+// Passing explicit mixin
+var Bar = Ember.Object.extend(Mixy);
+
+
+var b = new Bar();
+var f = new Foo();
+
+console.log(b.greet());
+console.log(f.greet());
+
+// ***********************
+// create = extend + instantiate
+var Constructor = Ember.Object.extend({
+  name: 'Eoin',
+  age: 34,
+  init: function (a) {
+    console.log('i am init()');
+    console.log('I got:' + a);
+  },
+  
+  doOther: function () {
+    console.log('i am also run on init');
+  }.on('init'),
+  
+  doThing: function () {
+    console.log('hellohello');
+  }.on('hello'),
+                                      
+  doOtherThing: function () {
+    console.log('oh hai hai');
+  }.on('hello')                                    
+});
+
+var a = new Constructor('i am arg');
+
+// create()
+// ********
+// + lets you extend() and instatiate at the same time
+// - you cannot pass args to the constructor
+// - the code that creates the object knows a lot more 
+//   about it's insides (compared to new Foo())
+var b = Ember.Object.create({
+  name: 'Eoin',
+  age: 34
+});
+
+console.log(b.name);
+console.log(b.age);
+
+// Ember as event dispatcher
+// *******************
+
+// * Any ember object can be sent events
+// * It can have multiple functions that respond to them
+Ember.sendEvent(a, 'hello');
+
+console.log('***************************');
+console.log('***************************');
+
+// Ember observers
+// ***************
+
+var Thing = Ember.Object.extend({
+  name: 'Eoin',
+  title: function () {
+    console.log('Mr. ' + this.get('name'));
+  }.observes('name')
+});
+
+var t1 = new Thing();
+console.log(t1.get('name'));
+t1.set('name', 'Eoin Kelly');
+
+var Thing2 = Ember.Object.extend({
+  name: 'Colm'
+});
+
+// notice that we are adding the observer to a single instance of Thing2 
+// rather than all instances of Thing (which the other syntax did for us)
+var t2 = new Thing2();
+Ember.addObserver(t2, 'name', function () {
+  console.log('Sir. ' + this.get('name'));
+});
+
+console.log(t2.get('name'));
+t2.set('name', 'Colm Kelly');
