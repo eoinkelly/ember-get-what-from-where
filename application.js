@@ -143,7 +143,7 @@ App.ApplicationRoute = Ember.Route.extend({
     // controller = the controller for the current route (resolved based on the name of the route)
 
     // default action of this function:
-    // controller.set('model') = model
+    // controller.set('model', model)
 
     // If you override this function and still want this behaviour to happen you need to do it!
   },
@@ -279,7 +279,7 @@ App.SimpleController = Ember.ObjectController.extend({
 
     // how do I get at my model
     // ========================
-    // this.get('model') // works
+    // this.get('model') // works - if it is failing it might be because  you have overriden setupController but not assigned the 'model' property
     // * this.model does not work because ???
     //    ? model is a computed property of the controller object
     // * if I am extended from Ember.Controller I can still get at my model 
