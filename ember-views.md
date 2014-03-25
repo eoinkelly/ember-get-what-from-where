@@ -12,16 +12,20 @@
     * views are automagically created to be the logic that backs a template
     * a template is like a blueprint for creating views
     * the template will automatically create views for you
-    * templates are kind of a declaratively way to create views
-* Every handlebars expression e.g. {{foo}}
+    * templates are kind of a declarative way to create views
+* Every handlebars expression e.g. `{{foo}}` creates a view object to manage it's binding
 * You can change the view heirarchy at run-time using `Ember.ContainerView`
-
 * views contain child views in the same way that DOM nodes contain their children
 
-Templates:Views is a many:many mapping
+* There doesn't seem to be a naming convention for views ???
 
-* A view can use different templates
-* A template can generate multiple views
+* The naming convention isn't :w
+
+
+How are views and templates related?
+
+* Many views can use the same template
+* A template can cause many views to be instantiated
 
 ## How does ember handle DOM events?
 
@@ -34,17 +38,16 @@ Templates:Views is a many:many mapping
 
 ## Ember view rendering timeline
 
-application calls `append` or `appendTo` on the view
-    this causes the view to be scheduled to be rendered (allowing binding sync to happen first)
-Ember creates a RenderBuffer and gives it to the view and tells it to append it's content to it
-    If the view needs to create child views, it will create RenderBuffers for them * child RenderBuffers have a link back to the parent RenderBuffer
+* application calls `append` or `appendTo` on the view
+    * this causes the view to be scheduled to be rendered (allowing binding sync to happen first)
+* Ember creates a RenderBuffer and gives it to the view and tells it to append it's content to it
+    * If the view needs to create child views, it will create RenderBuffers for them * child RenderBuffers have a link back to the parent RenderBuffer
 
-By the time that the top levewl view has finished rendering, Ember has two trees
-in memory
+By the time that the top levewl view has finished rendering, Ember has two trees in memory
 
 1. a tree of View objects
 2. a tree of RenderBuffer objects
-o
+
 Now Ember walks down the tree of RenderBuffers, converting them to strings
 
 A RenderBuffer also encapsulates an element's tag name and attributes which
@@ -52,17 +55,21 @@ makes it possible for the render process to modify them even **after** it's
 children have been rendered. This is important because bindings in the children
 could affect them
 
-Ember then uses jQUery to convert the string into an element
-
+Ember then uses jQuery to convert the string into an element
 
 ## Virtual views
 
-* `{{if}}` and `{{with}}` create virtual views * they are for Ember's internal bookeeping only
+* `{{if}}` and `{{with}}` create virtual views 
+* they are for Ember's internal bookeeping only
 * they are "virtual" because they don't appear in the `parentView` or `childView` properties
 * you can get at them using `this.get('_parentView')` or `this.get('_childViews')` but doing so is bad form
 
 ## Ember.ContainerView
 
+* Used when you have an area of your page that you want total view control over
+  and that area is more complex than can be represented by a single view
+* You can build up an arbitrarily complex tree of views since child views can
+  themselves be instances of `Ember.ContainerView`
 * exposes an array of child view instances
 * contains no text - is made up entirely of child views
 * is a way to programmatically build up a view heirarchy (nested arrays of views)
@@ -72,8 +79,66 @@ Ember then uses jQUery to convert the string into an element
       removes the old value of `currentView` from the `childViews` array - this
       eems odd???
 
+A ContainerView is an Ember.View subclass that implements Ember.MutableArray
+allowing programmatic management of its child views.
 
-View properties
+* `Ember.ContainerView` is a subclass of `Ember.View` (just like `Ember.Component` is)
+* It implementes `Ember.MutableArray` ???
+    * `pushObject()`
+    * `removeObject()`
+    * `toArray()`
+* It allows you to manage child views in JS rather than implicitly in the templates
+
+The following properties exist in `Ember.View` but do not make sense in an
+`Ember.ContainerView`:
+
+* template
+* templateName, 
+* defaultTemplate, 
+* layout, 
+* layoutName 
+* defaultLayout
+
+These will not result in the template or layout being rendered. The HTML
+contents of a `Ember.ContainerView` DOM representation will **only be the rendered
+HTML of its child views**.
+
+### Example code for `Ember.ContainerView`
+
+```
+// MyApp namespace
+window.MyApp = Ember.Application.create();
+
+// Create the container
+MyApp.container = Ember.ContainerView.create();
+
+// Append the container to the document body 
+MyApp.container.append();
+MyApp.container.appendTo('#foo'); // where '#foo' is a string|DOM element|jQuery selector
+// You can also plug a ContainerView into your app using the {{view}} handlebars
+// helper in a template:
+//      {{view App.container}}
+
+// Grab child views array
+var childViews = MyApp.container.get('childViews');
+
+// Add text field
+childViews.pushObject(Ember.TextField.create({
+      value: 'Test'
+}));
+
+// Add checkbox
+childViews.pushObject(Ember.Checkbox.create({
+      value: true
+}));
+
+// Add custom view
+childViews.pushObject(Ember.View.create({
+      template: Handlebars.compile('<label>Awesome-O</label>')
+}));
+```
+
+## View properties
 
 ```
 attributeBindings: [] // a list of view properties to apply as attributes of the containing element
@@ -119,21 +184,24 @@ eventManager {
 
 // event handlers
 // **************
-// any handlers defined in eventManager will override these
+
+// * any handlers defined in eventManager will override these
 // * these handlers get different params than the handlers in eventManager
+
 click: function(jQueryEvent) { }
 mouseEnter: function(jQueryEvent) { }
+// ...
 
 ```
-
-
-Q: what makes a "parent" view?
 
 If your template contains `{{view App.SomeView}}` then that view will be
 rendered as a child view into the place where it appears in the template
 
-One advantage of not defining events in eventManager is that you can call them
-from other parts of your view easily
+### Disadvantages of using `eventManager`
+
+* you cannot call the handler methods from other parts of your view as easily - really???
+* You can inherit event handlers individually (which you can't do if they are
+  all in one object (`eventManager`)
 
 ## View Methods
 
