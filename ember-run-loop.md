@@ -2,10 +2,15 @@
 
 * If you want to work with rendered content put it on the ‘afterRender’ queue
 * NB: You probably don't ever need Ember.run.next()
-
 * There is a plan for browsers to expose their runloop to JS via an API
-
 * Ember has an event dispatcher that responds to ember actions
+* It automatically runs in production but not in testing
+* It is possible to insert more queues into ember runloop
+* The run loop is not always running
+* While the browser is executing the runloop it
+* The runloop is ember's response to an event - it does all the updating and
+  propagates the consequences of that event throughout the system. Then it is
+  done and will finish and wait around for the next event
 
 ## When does it run
 
@@ -19,7 +24,7 @@
 
 * Loop through queues, performing each callback
 * After each callback see if computations schedules in previous queue
-* If so star the whole process over from the the first non-empty queue
+* If so start the whole process over from the the first non-empty queue
 * Continue until all queues empty
 
 
@@ -28,7 +33,7 @@
 You should wrap your asynch code in a run loop because
 
 * more efficient
-* hard to debug/test
+* hard to debug/test without it
 * potentially non-determniistic behaviour
 
 ```
@@ -39,8 +44,13 @@ Ember.run(object, function (obj) {
 
     // Ember.run.end() // pseudocode
     // Ember now propagates all changes that result from our custom code
-});
+    // throughout the system
+}]:]:);
 ```
+* You give `Ember.run()` a function that will trigger some events (and maybe do
+  other stuff). Ember will notice those events and do all the stuff required
+* You can expect that when the runloop has finished that *all* the bound data in
+  the app will have updated.
 
 This will
 * immediately run the callback
@@ -52,9 +62,6 @@ How can i get visiblity into when the ember run loop is running?
 Ember.run // the run loop
 ```
 
-It is possible to insert more queues into ember runloop
-
-
 ## What is the difference between observers and bindings in ember?
 
 * Binding propagation happens in the `sync` queue of the RunLoop
@@ -62,9 +69,10 @@ It is possible to insert more queues into ember runloop
   **not** scheduled on a RunLoop queue.
 
 
-This means that if an observer and binding are watching the same property,
-      the Observer will **always** be called first
-setTimeout(0) is ~3-4ms on modern browsers, ~15ms on mobile and older browsers
+This means that if an observer and binding are watching the same property, the
+Observer will **always** be called first.
+
+Aside: setTimeout(0) is ~3-4ms on modern browsers, ~15ms on mobile and older browsers
 
 
 scheduleOnce() vs. Ember.run.once ???
@@ -75,10 +83,9 @@ has been superceded by Ember.run.scheduleOnce('afterRender' ...)
 ## Resources
 
 * [http://alexmatchneer.com/blog/ember_run_loop_talk/#/intro](Good slides)
-* http://alexmatchneer.com/blog/2013/01/12/everything-you-never-wanted-to-know-about-the-ember-run-loop/
+* [http://alexmatchneer.com/blog/2013/01/12/everything-you-never-wanted-to-know-about-the-ember-run-loop/](detailed blog post)
 * [https://github.com/ebryn/backburner.js/](The library that implements the runloop)
-* [https://machty.s3.amazonaws.com/ember-run-loop-visual/index.html](Awesome
-  queue visualisation)
+* [https://machty.s3.amazonaws.com/ember-run-loop-visual/index.html](Awesome queue visualisation)
 
 
 Used to
@@ -89,7 +96,7 @@ Used to
         * similar means
             * reads from the DOM
             * writes to the DOM
-* order 
+* order
     * control the order that tasks are exwcuted
 * reorder
     * execute tasks in a different order than they arrived
@@ -101,8 +108,7 @@ work in a way that is most effective and efficient
 Ember's computed properties dependencies mean that a single property update can
 result in numerous changes to the DOM - the run loops stops this from being
 terrible
-* The run loop waits for all properties to settle down before rendering (similar
-  to Angular)
+* The run loop waits for all properties to settle down before rendering (similar to Angular)
 
 * The run loop processes queues in the order they appear in:
 ```
@@ -138,11 +144,10 @@ When will I need to work with queues
 Ember.run.scheduleOnce(queue, target, method, args*)
 ```
 
-The run loop is not always running ???
 
-How do I start a run loop
+How do I start a run loop?
 
-```
+```javascript
 $('foo').click(function () {
     Ember.run(function() { // begin loop
 
@@ -167,6 +172,6 @@ To fix this you can disable loop autoruns
 Ember.testing = true; // disables the automatic runloop
 
 // Now you can manually schedule asynchronous operations to run in a one off
-runloop via Ember.run
+// runloop via Ember.run
 
 ```
