@@ -72,3 +72,105 @@ fooWatcher: function () {
   });
 }.observes('thing'),
 ```
+# Presentation: Route traversal with flows
+
+* http://confreaks.com/videos/3312-emberconf2014-controlling-route-traversal-with-flows
+* Consider: The URL as the lowest level of abstraction that a normal user will use to interface with the site
+
+3 categories of Routes
+
+1. Resources
+    * available at any point in time in the app
+    * you want them in the history stack
+    * generally they don't change the state of your app
+    * use plural nouns for collections, singluar nouns for individual resource
+2. Actions
+    * Use verbs
+    * receives all of hte users input in one hit
+    * in response they will see the new resource/flash message/etc.
+    * oftne want to completely reset the controller e.g. discard the form stuff they just filled in
+    * but JS apps don't have to discard all the state when the user changes route (as you do on the server)
+3. Flows
+    * a series of actions divided across routes
+    * change the application from one state to another across multiple routes e.g. use goes through 3 routes to get from one state to another
+        * e.g. login -> authenticate -> accounts
+    * your flow has its own state machine
+    * your flow is a directed graph with an attached state machine
+        * it is not acyclic because the user can go backwards with their back button
+        * routes are nodes in the graph
+
+## How do we model flows?
+We make a state machine that models how the use moves through the application
+
+  * so that users can jump back to various points
+
+step 1 inventory your routes
+    * open the router map and keep it visible
+step 2 list linear paths
+  * he uses a spreadsheet
+step 3 convert paths into node graph
+
+step 4: describe edge traversal
+
+step 5: identify backwards traversals
+    * this is usually users hitting hte back button
+
+
+TIP: replaceWith() is an alternative to transistionTo() execept it doesn't add anything to browser history
+
+Most of the logic of traversing between routes happens in action handlers
+
+* Define all progression in a separate location
+* Load the Flow and its state from a route-global injection
+* Delegate the identification of where to go to the Flow itself
+* Call back into the Flow to progress
+* Your flow tracks which states you've traversed in case you need that information in the applicaiton
+
+```javascript
+// design an directed graph
+// can be edge-list or adjancey-index
+// we are using edge-list
+LoginFlow.addEdge({
+  from: 'login.index',
+  to: 'accounts.index',
+  weight: 1,
+  conditions: ['isIdentified', 'isAuthenticated']
+});
+
+var login = Ember.Object.extend();
+
+Ember.Appication.initializer({
+  name: 'login',
+  initialize: function (container, app) {
+    app.register('flow:login', login);
+    app.inject('route', 'login', 'flow:login');
+  }
+});
+
+// ...
+
+beforeModel: function () {
+  // looks up the current flow
+  // identifies where the user should be
+  this.get('flow').check();
+}
+
+
+// ...
+
+
+actions: {
+  authenticate: function () {
+    var Flow = this.get('flow');
+
+    ic.ajax.raw('/authenticate').then(function (result) {
+      if (result.response.isAuthenticated) {
+        // the action *sets* state on the flow but it doesn't do any processing
+        Flow.set('isAuthenticated', true);
+        Flow.progress();
+      }
+    })
+  }
+}
+
+```
